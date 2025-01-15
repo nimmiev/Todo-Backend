@@ -1,105 +1,132 @@
+require('dotenv').config(); // Load environment variables from .env
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const app = express();
-const PORT = 3000;
 
+// Use environment variable for PORT or default to 3000
+const PORT = process.env.PORT || 3000;
+
+// CORS setup
+const allowlist = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const corsOptionsDelegate = function (req, callback) {
+  const corsOptions = allowlist.includes(req.header('Origin'))
+    ? { origin: true } // Allow listed origins
+    : { origin: false }; // Block other origins
+  callback(null, corsOptions);
+};
+
+app.use(cors(corsOptionsDelegate));
+app.use(express.json()); // Middleware for parsing JSON
+
+// MongoDB connection
+// async function main() {
+//   try {
+//         await mongoose.connect(process.env.MONGODB_URI, {
+//           useNewUrlParser: true,
+//           useUnifiedTopology: true,
+//         });
+//         console.log('MongoDB Connected');
+//       } catch (err) {
+//         console.error('MongoDB connection error:', err);
+//       }
+// }
 async function main() {
-    await mongoose.connect('mongodb+srv://nimmiev222:todo-listpwd@todolist.vyyvz.mongodb.net/?retryWrites=true&w=majority&appName=todolist');
-}
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('MongoDB Connected');
+    } catch (err) {
+      console.error('MongoDB connection error:', err);
+    }
+  }
 
-main()
-.then(res => {console.log('MongoDB Connected')})
-.catch(err => console.log(err));
+main();
 
+// Mongoose Schema and Model
 const TaskSchema = new mongoose.Schema({
-    task: String
+  task: { type: String, required: true },
 });
 const Task = mongoose.model('Task', TaskSchema);
 
-// Middleware for parsing JSON
-app.use(express.json());
+// API Endpoints
 
-let todos = [];
-
-// create a to-do
+// Create a to-do
 app.post('/todos', async (req, res) => {
-    const { task } = req.body; // Destructure `task` from the request body
-    if (!task) {
-        return res.status(400).json({ error: 'Task is required' });
-    }
-
-    try {
-        const newTask = await Task.create({ task });
-        res.status(201).json(newTask);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to create task' });
-    }
+  const { task } = req.body;
+  if (!task) {
+    return res.status(400).json({ error: 'Task is required' });
+  }
+  try {
+    const newTask = await Task.create({ task });
+    res.status(201).json(newTask);
+  } catch (err) {
+    console.error('Error creating task:', err);
+    res.status(500).json({ error: 'Failed to create task' });
+  }
 });
 
-
-// read all to-dos
+// Read all to-dos
 app.get('/todos', async (req, res) => {
-    try {
-        const tasks = await Task.find({});
-        res.json(tasks); // Each task will have a `task` field
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch tasks' });
-    }
+  try {
+    const tasks = await Task.find({});
+    res.json(tasks);
+  } catch (err) {
+    console.error('Error fetching tasks:', err);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
 });
 
-
-// single to-do read
-app.get('/todos/:id', (req, res) => {
-    const { id } = req.params;
-    const todo = todos.find((t) => t.id === parseInt(id));
-    if (!todo) {
-        return res.status(404).json({ error: 'To-Do not found' });
+// Read a single to-do
+app.get('/todos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({ error: 'To-Do not found' });
     }
-    res.json(todo);
+    res.json(task);
+  } catch (err) {
+    console.error('Error fetching task:', err);
+    res.status(500).json({ error: 'Failed to fetch task' });
+  }
 });
 
-// update a to-do
+// Update a to-do
 app.put('/todos/:id', async (req, res) => {
-    const { id } = req.params;
-    const { task, completed } = req.body;
-
-    try {
-        const updatedTask = await Task.findByIdAndUpdate(
-            id,
-            { task, completed },
-            { new: true }
-        );
-        if (!updatedTask) {
-            return res.status(404).json({ error: 'Task not found' });
-        }
-        res.json(updatedTask);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update task' });
+  const { id } = req.params;
+  const { task } = req.body;
+  try {
+    const updatedTask = await Task.findByIdAndUpdate(
+      id,
+      { task },
+      { new: true }
+    );
+    if (!updatedTask) {
+      return res.status(404).json({ error: 'Task not found' });
     }
+    res.json(updatedTask);
+  } catch (err) {
+    console.error('Error updating task:', err);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
 });
 
-
-// delete a to-do
+// Delete a to-do
 app.delete('/todos/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const deletedTask = await Task.findByIdAndDelete(id);
-        if (!deletedTask) {
-            return res.status(404).json({ error: 'Task not found' });
-        }
-        res.json(deletedTask);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to delete task' });
+  const { id } = req.params;
+  try {
+    const deletedTask = await Task.findByIdAndDelete(id);
+    if (!deletedTask) {
+      return res.status(404).json({ error: 'Task not found' });
     }
+    res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    res.status(500).json({ error: 'Failed to delete task' });
+  }
 });
 
-
-
+// Start the server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
