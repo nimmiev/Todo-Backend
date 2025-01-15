@@ -67,7 +67,7 @@ app.post('/todos', async (req, res) => {
 });
 
 // Read all to-dos
-app.get('/todos', async (req, res) => {
+app.get('todos', async (req, res) => {
   try {
     const tasks = await Task.find({});
     res.json(tasks);
@@ -78,7 +78,7 @@ app.get('/todos', async (req, res) => {
 });
 
 // Read a single to-do
-app.get('/todos/:id', async (req, res) => {
+app.get('todos/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const task = await Task.findById(id);
