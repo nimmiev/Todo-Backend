@@ -10,9 +10,10 @@ const PORT = process.env.PORT || 4000;
 // CORS setup
 const allowlist = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://todo-frontend-rosy-one.vercel.app', 'https://todo-frontend-nimmis-projects-deacabf5.vercel.app'];
 const corsOptionsDelegate = function (req, callback) {
+  console.log("Request Origin: ", req.header('Origin')); // Debugging log
   const corsOptions = allowlist.includes(req.header('Origin'))
-    ? { origin: true } // Allow listed origins
-    : { origin: false }; // Block other origins
+    ? { origin: true }
+    : { origin: false };
   callback(null, corsOptions);
 };
 
