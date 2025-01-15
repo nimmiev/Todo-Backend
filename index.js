@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS setup
-const allowlist = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://todo-frontend-rosy-one.vercel.app'];
+const allowlist = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://todo-frontend-rosy-one.vercel.app', 'https://todo-frontend-nimmis-projects-deacabf5.vercel.app'];
 const corsOptionsDelegate = function (req, callback) {
   const corsOptions = allowlist.includes(req.header('Origin'))
     ? { origin: true } // Allow listed origins
